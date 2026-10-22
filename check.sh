@@ -34,11 +34,11 @@ WP_DIR=""
 DO_DOCKER=1
 while [ $# -gt 0 ]; do
   case "$1" in
-    --wordpress) DO_WP=1
-      case "${2:-}" in ""|-*) ;; *) WP_DIR=$2; shift ;; esac ;;
-    --no-docker) DO_DOCKER=0 ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
-    *) echo "Unknown option: $1 (try --help)"; exit 64 ;;
+    (--wordpress) DO_WP=1
+      case "${2:-}" in (""|-*) ;; (*) WP_DIR=$2; shift ;; esac ;;
+    (--no-docker) DO_DOCKER=0 ;;
+    (-h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    (*) echo "Unknown option: $1 (try --help)"; exit 64 ;;
   esac
   shift
 done
@@ -63,9 +63,9 @@ binary_version() {
   bv_bin=$1
   bv_v=""
   case "$bv_bin" in
-    *frankenphp*) bv_v=$("$bv_bin" version 2>/dev/null | php_version_in) ;;
-    *.so) ;;
-    *) bv_v=$("$bv_bin" -v 2>/dev/null | php_version_in) ;;
+    (*frankenphp*) bv_v=$("$bv_bin" version 2>/dev/null | php_version_in) ;;
+    (*.so) ;;
+    (*) bv_v=$("$bv_bin" -v 2>/dev/null | php_version_in) ;;
   esac
   if [ -z "$bv_v" ] && [ -r "$bv_bin" ]; then
     bv_v=$(grep -a -o 'X-Powered-By: PHP/[0-9][0-9.]*' "$bv_bin" 2>/dev/null | php_version_in)
@@ -85,7 +85,7 @@ package_info() {
   fi
   if have rpm; then
     pi_r=$(rpm -qf --qf '%{NAME} %{VERSION}-%{RELEASE}\n' "$pi_f" 2>/dev/null | head -n 1)
-    case "$pi_r" in ""|*"not owned"*|*"No such"*) ;; *) printf 'rpm %s\n' "$pi_r"; return ;; esac
+    case "$pi_r" in (""|*"not owned"*|*"No such"*) ;; (*) printf 'rpm %s\n' "$pi_r"; return ;; esac
   fi
   if have apk; then
     pi_a=$(apk info --who-owns "$pi_f" 2>/dev/null | sed -n 's/.* is owned by //p' | head -n 1)
@@ -112,14 +112,14 @@ verdict() {
   # Distribution builds: the upstream number can be old while the fix is in.
   if [ "$vd_kind" = deb ]; then
     case "$vd_pver" in
-      *deb.sury.org*) ;;   # Ondrej Sury builds follow upstream numbers
-      *)
+      (*deb.sury.org*) ;;   # Ondrej Sury builds follow upstream numbers
+      (*)
         vd_src=$(echo "$vd_pkg" | sed -n 's/.*\(php[0-9][0-9.]*\).*/\1/p' | sed 's/\.$//')
         vd_line=$(printf '%s\n' "$DISTRO_FIXED" | while IFS='|' read -r p m f s; do
           [ "$p" = "$vd_src" ] || continue
           # same distribution build line, or the same upstream base version (e.g. an older 8.3.6-0... build)
           case "$vd_pver" in
-            *"$m"*|"${f%%-*}"-*) printf '%s|%s\n' "$f" "$s"; break ;;
+            (*"$m"*|"${f%%-*}"-*) printf '%s|%s\n' "$f" "$s"; break ;;
           esac
         done)
         if [ -n "$vd_line" ]; then
@@ -140,7 +140,7 @@ verdict() {
           return
         fi
         case "$vd_pver" in
-          *ubuntu*|*deb[0-9]*u*|*debian*)
+          (*ubuntu*|*deb[0-9]*u*|*debian*)
             printf 'CHECK\tDistribution package %s %s. Distributions often fix PHP without changing its version number, and this build is not in our table. Look up "CVE-2026-109618" on your distribution security page.\n' "$vd_pkg" "$vd_pver"
             return ;;
         esac ;;
@@ -148,8 +148,8 @@ verdict() {
   fi
   if [ "$vd_kind" = rpm ]; then
     case "$vd_pver" in
-      *remi*|*cpanel*|*plesk*|*ea[0-9]*) ;;   # these follow upstream numbers
-      *.el[0-9]*|*.fc[0-9]*|*.amzn*)
+      (*remi*|*cpanel*|*plesk*|*ea[0-9]*) ;;   # these follow upstream numbers
+      (*.el[0-9]*|*.fc[0-9]*|*.amzn*)
         printf 'CHECK\tDistribution package %s %s. Red Hat style distributions fix PHP without changing its version number. Run "dnf updateinfo list --cve CVE-2026-109618" (or ask your vendor) to see if this build has the fix.\n' "$vd_pkg" "$vd_pver"
         return ;;
     esac
@@ -186,10 +186,10 @@ report() {
   rp_res=$(printf '%s' "$rp_out" | cut -f1)
   rp_msg=$(printf '%s' "$rp_out" | cut -f2-)
   case "$rp_res" in
-    PASS) N_PASS=$((N_PASS + 1)) ;;
-    VULNERABLE) N_VULN=$((N_VULN + 1)) ;;
-    END-OF-LIFE) N_EOL=$((N_EOL + 1)) ;;
-    *) N_CHECK=$((N_CHECK + 1)) ;;
+    (PASS) N_PASS=$((N_PASS + 1)) ;;
+    (VULNERABLE) N_VULN=$((N_VULN + 1)) ;;
+    (END-OF-LIFE) N_EOL=$((N_EOL + 1)) ;;
+    (*) N_CHECK=$((N_CHECK + 1)) ;;
   esac
   say "  $(printf '%-12s' "$rp_res") $rp_where"
   say "               $rp_what, PHP $rp_v. $rp_msg"
@@ -199,7 +199,7 @@ check_file() {
   cf_f=$1; cf_what=$2
   [ -e "$cf_f" ] || return
   cf_real=$(realpath_of "$cf_f")
-  case "$SEEN" in *" $cf_real "*) return ;; esac
+  case "$SEEN" in (*" $cf_real "*) return ;; esac
   SEEN="$SEEN$cf_real "
   cf_v=$(binary_version "$cf_real")
   cf_info=$(package_info "$cf_real")
@@ -211,12 +211,12 @@ check_file() {
 
 describe() {
   case "$1" in
-    *frankenphp*) echo "FrankenPHP" ;;
-    *lsphp*) echo "LiteSpeed PHP (lsphp)" ;;
-    *php-fpm*|*php*-fpm*) echo "PHP-FPM (web)" ;;
-    *php-cgi*|*php*-cgi*) echo "php-cgi (web)" ;;
-    *libphp*|*mod_php*) echo "Apache mod_php (web)" ;;
-    *) echo "PHP command line" ;;
+    (*frankenphp*) echo "FrankenPHP" ;;
+    (*lsphp*) echo "LiteSpeed PHP (lsphp)" ;;
+    (*php-fpm*|*php*-fpm*) echo "PHP-FPM (web)" ;;
+    (*php-cgi*|*php*-cgi*) echo "php-cgi (web)" ;;
+    (*libphp*|*mod_php*) echo "Apache mod_php (web)" ;;
+    (*) echo "PHP command line" ;;
   esac
 }
 
@@ -234,7 +234,7 @@ for d in $PATH; do
   IFS=$OLDIFS
   for f in "$d"/php "$d"/php[0-9]* "$d"/php-fpm* "$d"/php[0-9]*-fpm* "$d"/php-cgi* "$d"/php[0-9]*-cgi* "$d"/lsphp* "$d"/frankenphp; do
     [ -f "$f" ] && [ -x "$f" ] || continue
-    case "$f" in *.dpkg-*|*-config*|*ize*|*dbg*) continue ;; esac
+    case "$f" in (*.dpkg-*|*-config*|*ize*|*dbg*) continue ;; esac
     check_file "$f" "$(describe "$f")"
   done
   IFS=:
@@ -251,7 +251,7 @@ for f in /usr/bin/php[0-9]* /usr/sbin/php-fpm* /usr/local/sbin/php-fpm* \
          /usr/local/php*/bin/php* /usr/local/php*/sbin/php-fpm* \
          /usr/local/bin/frankenphp /usr/bin/frankenphp; do
   [ -f "$f" ] && [ -x "$f" ] || continue
-  case "$f" in *.dpkg-*|*-config*|*ize*|*dbg*) continue ;; esac
+  case "$f" in (*.dpkg-*|*-config*|*ize*|*dbg*) continue ;; esac
   check_file "$f" "$(describe "$f")"
 done
 
