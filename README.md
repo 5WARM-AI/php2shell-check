@@ -3,6 +3,7 @@
 **What it is:** a free script that tells you if the PHP on your own server is exposed to PHP2Shell (CVE-2026-109618 and CVE-2026-109619), two critical flaws that let an attacker take over a server with no password.
 **Run it:** copy `check.sh` to your server and type `sh check.sh`.
 **If it says VULNERABLE or END-OF-LIFE:** upgrade PHP today using [FIX.md](FIX.md). If a hosting company runs PHP for you, send them the email in FIX.md.
+**Full guide:** [5warm.ai/guides/php2shell-check/](https://5warm.ai/guides/php2shell-check/)
 
 ---
 
